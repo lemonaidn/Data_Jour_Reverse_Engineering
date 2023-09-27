@@ -1,0 +1,40 @@
+---
+title: "ReverseEngineering"
+output: html_document
+date: "2023-09-27"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Load the data 538
+
+```{r}
+library(tidyverse)
+library(readr)
+```
+
+
+```{r}
+donation_df<-read_csv("sports-political-donations.csv")
+
+donation_df
+```
+```{r}
+donation_df$Amount = parse_number(donation_df$Amount)
+
+donation_df
+```
+
+
+```{r}
+donations_by_party <- donation_df |> 
+  group_by(Party) |> 
+  summarize(total = sum(Amount)) |> 
+  arrange(desc(total))
+
+donations_by_party
+```
+
+
