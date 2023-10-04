@@ -8,33 +8,57 @@ date: "2023-09-27"
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-Load the data 538
 
 ```{r}
 library(tidyverse)
 library(readr)
-```
+library(scales)
 
-
-```{r}
 donation_df<-read_csv("sports-political-donations.csv")
 
 donation_df
 ```
+
+## Finding 1
+
+“A deep search in the Federal Election Commission database of campaign finances for principal owners, controlling owners, co-owners and commissioners from the NBA, NFL, NHL, WNBA, MLB and NASCAR reveals that this deep-pocketed group has sent $34.2 million (72.9 percent) to Republican campaigns or super PACs purely supporting Republican causes, compared to $10.1 million (21.5 percent) to Democrats over the past three elections.”
+
+This sentence presents the main finding of 538’s analysis: overall, major league sports franchise owners contributed overwhelmingly towards Republicans over Democrats. It also provides a glimpse into the methodology and source of the data.
+
+In order to reproduce this finding, we had to convert the dollar amount from the "amount" column from "charcter" to "double." We did this by using the parse number function, which removed the dollar sign and the comma from each amount entry. We found this function on Google.
+
+To determine the total amount of donations by political party/affiliation, we decided to group by "Party" and use summarize to create a party_total column and sums the amount donated per party, we then arranged in descending order to get the totals from highest to lowest. We successfully reproduced the first finding from the 538 article.
+
 ```{r}
-donation_df$Amount = parse_number(donation_df$Amount)
+donation_df$Amount<-parse_number(donation_df$Amount)
 
 donation_df
-```
 
-
-```{r}
 donations_by_party <- donation_df |> 
   group_by(Party) |> 
-  summarize(total = sum(Amount)) |> 
-  arrange(desc(total))
+  summarize(party_total = sum(Amount)) |> 
+  arrange(desc(party_total))
 
 donations_by_party
 ```
 
+## Finding 2 
+
+“Overall, 51.7 percent of all contributions by WNBA owners went to Democrats, with 42.3 percent going to Republicans.” 
+
+To reproduce this finding, we initially tried filtering by League=="WNBA", but were getting incorrect results. We realized this method was causing us to miss rows, because some owners owned teams in multiple leagues, all of which were listed together. Instead, we used str_detect to find all correct instances of WNBA in League even if it was paired with other leagues in the same record. 
+
+Then we grouped by party and created a party_amount column using summarize to sum the total donations for all WNBA owners to convert that to percentages. We used mutate to create a new column "pct_of_total" and calculated the values by dividing the amount for each party by the total amount across all parties. We also used a "percent" function from the scales package that we loaded at the top of our file to add the percent sign so that it doesn't just show as a decimal, which we found on Google. Our findings match 538's.
+
+```{r}
+WNBA_donations <- donation_df |> 
+  filter(str_detect(League, 'WNBA')) |> 
+  group_by(Party) |> 
+  summarize(party_total = sum(Amount))
+
+WNBA_donations <- WNBA_donations |> 
+  mutate(pct_of_total = percent(party_total/sum(party_total)), accuracy = 0.1)
+
+WNBA_donations
+```
 
