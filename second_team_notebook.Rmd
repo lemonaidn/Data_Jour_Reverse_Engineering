@@ -86,6 +86,9 @@ loeffler_r_wnba_donations <- donation_df |>
 loeffler_r_wnba_donations  
    
 ```
+
+Note: as Derek suggested after a quick chat, another method to write the above code without using "wnba_donations$party_total[2] within the mutate function, would have been to store the corresponding value in a standalone variable beforehand and then just call that variable instead of wnba_donations$party_total[2]"
+
 Although this wasn't present in the article, we also wanted to see what the WNBA's political contributions would look like if we removed Kelly Loeffler, this big outlier. We used a very similar code to Finding #2 (league is WNBA, group by party, sum the amounts), while also filtering out any owners with the name Kelly Loeffler. We found that without her, 72% of WNBA donations went to Democrats. That's over a 20% jump from the 51.7% giving to Democrats that we saw in Finding #2. 
 
 ```{r}
