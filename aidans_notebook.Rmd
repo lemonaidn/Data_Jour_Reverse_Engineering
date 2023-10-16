@@ -12,29 +12,34 @@ knitr::opts_chunk$set(echo = TRUE)
 
 “A deep search in the Federal Election Commission database of campaign finances for principal owners, controlling owners, co-owners and commissioners from the NBA, NFL, NHL, WNBA, MLB and NASCAR reveals that this deep-pocketed group has sent $34.2 million (72.9 percent) to Republican campaigns or super PACs purely supporting Republican causes, compared to $10.1 million (21.5 percent) to Democrats over the past three elections.”
 
-In order to reproduce this first finding, we had to convert the dollar amount from the Amount column from a character to a dbl. We also wanted to figure out how to remove the dollar sign and the comma from each Amount entry. So we Googled that and found the parse_number function, which worked well. 
+In order to reproduce this first finding, we had to convert the dollar amount from the amount column from a character to a dbl. We also wanted to figure out how to remove the dollar sign and the comma from each amount entry. So we Googled that and found the parse_number function, which worked well. 
 
-Then, to determine the total amount of donations by political party, we decided to group_by Party and use summarise() to create a party_total column that sums the amount donated per party. We then arranged in descending order to get the totals from highest to lowest. We successfully reproduced this first finding from 538's article.
+Then, to determine the total amount of donations by political party, we decided to group_by party and use summarise() to create a party_total column that sums the amount donated per party. We then arranged in descending order to get the totals from highest to lowest. We successfully reproduced this first finding from 538's article.
 
 ```{r}
 library(tidyverse)
 library(readr)
 library(scales)
+library(janitor)
 
 # Load the data from 538
 
-donation_df = read_csv("sports-political-donations.csv")
+donation_df <- read_csv("sports-political-donations.csv")
 
-# Use parse_number to convert the Amount column to dbl
+# clean column names to change case to lower and remove spaces
+
+donation_df <- clean_names(donation_df)
+
+# Use parse_number to convert the amount column to dbl
 
 donation_df<- donation_df |>
-  mutate(Amount = parse_number(Amount))
+  mutate(amount = parse_number(amount))
 
-# group_by Party and use summarise() to create a party_total column that sums the amount donated per party
+# group_by party and use summarise() to create a party_total column that sums the amount donated per party
 
 donations_by_party <- donation_df |>
-  group_by(Party) |>
-  summarise(party_total = sum(Amount)) |>
+  group_by(party) |>
+  summarise(party_total = sum(amount)) |>
   arrange(desc(party_total))
 
 donations_by_party
@@ -46,18 +51,18 @@ donations_by_party
 
 “Overall, 51.7 percent of all contributions by WNBA owners went to Democrats, with 42.3 percent going to Republicans.”
 
-To reproduce this finding, we initially tried filtering by League = "WNBA," but we were getting incorrect results (Republican was way too high). We realized that this method was missing some rows because certain owners own teams in multiple leagues, and those entries not showing up here. To fix this, we used str_detect to find all correct instances of WNBA in League, even if it was paired with other leagues in the same record. 
+To reproduce this finding, we initially tried filtering by league = "WNBA," but we were getting incorrect results (Republican was way too high). We realized that this method was missing some rows because certain owners own teams in multiple leagues, and those entries not showing up here. To fix this, we used str_detect to find all correct instances of WNBA in league, even if it was paired with other leagues in the same record. 
 
-Then, we grouped_by Party and used summarise() to sum the total donations by party for all WNBA owners. This new column was called party_total. To convert that figure to percentages, we used mutate to create a new column called pct_of total. We calculated the values by dividing the amount for each party by the total amount across all parties. 
+Then, we grouped_by party and used summarise() to sum the total donations by party for all WNBA owners. This new column was called party_total. To convert that figure to percentages, we used mutate to create a new column called pct_of total. We calculated the values by dividing the amount for each party by the total amount across all parties. 
 
-Last, we wanted to show the pct_of_total not as a decimal but as a percentage (with percent sign) in the dataset. We Googled this and found that a package called scales has a function percent() that does this. We loaded scales at the top of our file, then we used the percent() function to display the percentage as we wanted in the pct_of_total column. Our findings match 538's here too, hooray! 
+Last, we wanted to show the pct_of_total not as a decimal but as a percentage (with percent sign) in the data set. We Googled this and found that a package called scales has a function percent() that does this. We loaded scales at the top of our file, then we used the percent() function to display the percentage as we wanted in the pct_of_total column. Our findings match 538's here too, hooray! 
 
 ```{r}
 
 wnba_donations <- donation_df |> 
-  filter(str_detect(League, "WNBA")) |> 
-  group_by(Party) |> 
-  summarise(party_total = sum(Amount)) |>
+  filter(str_detect(league, "WNBA")) |> 
+  group_by(party) |> 
+  summarise(party_total = sum(amount)) |>
   mutate(pct_of_total = percent(party_total / sum(party_total)))|> 
   arrange(desc(pct_of_total))
   
@@ -78,28 +83,70 @@ We refiltered donation_df to only return Kelly Loeffler's donations to Republica
 ```{r}
 
 loeffler_r_wnba_donations <- donation_df |> 
-  filter(str_detect(League, "WNBA")) |>
-  filter(Owner == "Kelly Loeffler") |>
-  filter(Party == "Republican") |>
-  summarise(loeffler_r_total = sum(Amount)) |>
+  filter(str_detect(league, "WNBA")) |>
+  filter(owner == "Kelly Loeffler") |>
+  filter(party == "Republican") |>
+  summarise(loeffler_r_total = sum(amount)) |>
   mutate(percent_of_total = percent(loeffler_r_total / wnba_donations$party_total[2], accuracy = 0.1))
 
 loeffler_r_wnba_donations
 
 
 ```
+
+```{r}
+
+wnba_donations$party_total[2]
+
+```
+# Finding 4
+
+
 Although this wasn't present in the article, we also wanted to see what the WNBA's political contributions would look like if we removed Kelly Loeffler, this big outlier. We used a very similar code to Finding #2 (league is WNBA, group by party, sum the amounts), while also filtering out any owners with the name Kelly Loeffler. We found that without her, 72% of WNBA donations went to Democrats. That's over a 20% jump from the 51.7% giving to Democrats that we saw in Finding #2.
 
 ```{r}
 no_loeffler_wnba <- donation_df |> 
-  filter(str_detect(League, "WNBA")) |>
-  filter(Owner != "Kelly Loeffler") |>
-  group_by(Party) |> 
-  summarise(party_total = sum(Amount)) |>
+  filter(str_detect(league, "WNBA")) |>
+  filter(owner != "Kelly Loeffler") |>
+  group_by(party) |> 
+  summarise(party_total = sum(amount)) |>
   mutate(pct_of_total = percent(party_total / sum(party_total)))|> 
   arrange(desc(party_total))
 
 no_loeffler_wnba
+```
+
+# Finding 5
+
+“Thirteen owners have contributed directly to Trump’s campaign or Trump super PACs in the 2020 election cycle, with contributions adding up to $1,746,423. [...] By contrast, 20 owners have contributed directly to Biden or Biden’s super PACs, though at smaller totals, with overall contributions equaling $405,745.”
+
+Filter by election_year 2020
+use a str_detect on Trump and Biden since they each have multiple affiliated PACs with different
+
+```{r}
+# update recipient values to all upper case
+
+donation_df <- donation_df %>%
+  mutate(recipient = str_to_upper(recipient))
+
+# find the 13 owners who donated to Trump's committee and affiliated committees
+
+donation_df %>%
+  filter(election_year == 2020) %>%
+  filter(str_detect(recipient, "TRUMP") | str_detect(recipient, "GREAT AMERICA COMMITTEE")) %>%
+  group_by(owner) %>%
+  summarise(total_amount = sum(amount))
+
+
+```
+
+
+```{r}
+unique_committees <- donation_df %>%
+  filter(election_year == 2020) %>%
+  filter(party == "Republican") %>%
+  group_by(recipient) %>%
+  summarise()
 ```
 
 
