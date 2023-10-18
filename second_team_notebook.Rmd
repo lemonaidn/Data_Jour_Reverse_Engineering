@@ -16,6 +16,7 @@ Clean the column names to replace spaces with an underscore and change case to l
 library(tidyverse)
 library(readr)
 library(scales)
+library(janitor)
 
 # Load the data from 538.
 
@@ -120,17 +121,91 @@ wnba_no_loeffler
 “Thirteen owners have contributed directly to Trump’s campaign or Trump super PACs in the 2020 election cycle, with contributions adding up to $1,746,423. [...] By contrast, 20 owners have contributed directly to Biden or Biden’s super PACs, though at smaller totals, with overall contributions equaling $405,745.”
 
 
+In our first attempt (per the code below), we were only able to find 12 of the 13 owners mentioned by 538. We filtered for election year 2020, used string detect "Trump" to find committees in the recipient column supporting Trump's reelection. We saved these 12 owners in the dataset "trump_2020" and we know that their contributions total to $1,544,421. That leaves $202,002 missing. 
+
 ```{r}
  # Update recipient values to all upper case
 donation_df <- donation_df |> 
   mutate(recipient = str_to_upper(recipient))
   
 # Find the 13 owners who contributed to Trump's campaign or Trump super PACs. 
- donation_df |> 
+ 
+trump_2020 <- donation_df |> 
   filter(election_year == 2020) |> 
   filter(str_detect(recipient,"TRUMP")) |>
-  group_by(owner) |>
-  summarise (count = n())
- 
+  group_by(owner)
+
+#Huh. We only found 12 owners this way. How much did they contribute together? 
+
+total_12 <- sum(trump_2020$amount)
+
+total_12
+
+#They contributed $1,544,421. How much money are we still looking for? 
+
+1746423 - total_12
+
+#We need to find $202,002 in contributions for Trump still. Let's save the total we're looking for, we may need it as a variable. 
+
+total_13 <- 1746423 
+
 ```
 
+We looked back at 538's article to figure out who our missing 13th owner was. The full paragraph was, "Thirteen owners have contributed directly to Trump’s campaign or Trump super PACs in
+the 2020 election cycle, with contributions adding up to $1,746,423. That list of owners
+includes: Bill Foley (Vegas Golden Knights), Bill Hornbuckle (Las Vegas Aces), Charles
+Johnson (San Francisco Giants), Dan Devos (Orlando Magic), Jack Roush
+(NASCAR), James Dolan (New York Knicks and Rangers), Kelly Loeffler
+(Atlanta Dream), Mike Brown (Cincinnati Bengals), Peter Karmanos (Carolina
+Hurricanes), Robert Plummer (Los Angeles Dodgers), Roger Penske (Team
+Penske) Tilman Fertitta (Houston Rockets) and Todd Ricketts (Chicago Cubs)" 
+
+So we now know that we are missing Peter Karmanos of the Carolina Hurricanes. Let's look at his 2020 donation to figure out which PACs we are missing. 
+
+```{r}
+
+# Find Peter Karmanos, who according to 538 is our missing 13th owner. 
+
+karmanos_donations <- donation_df |> 
+  filter(election_year == 2020) |> 
+  filter(str_detect(owner,"Peter Karmanos"))|> 
+  group_by(recipient)
+
+total_karmanos <- sum(karmanos_donation$amount)
+
+# Karmanos donated a total of $203702. 
+
+total_karmanos
+
+total_karmanos - total_12
+
+# It looks like a lot of these contributions are for state-wide races, not the presidency. 
+
+karmanos_donations_president <- karmanos_donations |> 
+  filter(
+   recipient == "BLACK AMERICANS TO RE-ELECT THE PRESIDENT" | 
+    recipient == "REPUBLICAN NATIONAL COMMITTEE" | 
+    recipient == "HUCK PAC" | 
+    recipient == "STARS AND STRIPES FOREVER PAC")
+   
+karmanos_president_total <- sum(karmanos_donations_president$amount)
+
+karmanos_president_total
+
+#Okay, it looks like Karmanos donated $134,602 to presidential campaigns. 
+
+total_13 - total_12 - karmanos_president_total
+
+#We are still missing $67,400 in donations towards Trump. Which means I guess we are missing something from one of the 12 guys we found above. I AM CONFUSED AND I"M SORRY I COULN"T FIGURE IT OUT YOU GUYS. 
+  
+```
+
+
+```{r}
+# Find the 20 owners who contributed to Biden's campaign or Biden super PACs. 
+ donation_df |> 
+  filter(election_year == 2020) |> 
+  filter(str_detect(recipient,"BIDEN")) |>
+  group_by(owner) |>
+  summarise (count = n())
+```
