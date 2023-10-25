@@ -134,8 +134,11 @@ donation_df <- donation_df %>%
 donation_df %>%
   filter(election_year == 2020) %>%
   filter(str_detect(recipient, "TRUMP") | str_detect(recipient, "GREAT AMERICA COMMITTEE")) %>%
-  group_by(owner) %>%
-  summarise(total_amount = sum(amount))
+  group_by(recipient) %>%
+  summarise() %>%
+  arrange(recipient)
+  #group_by(owner) %>%
+  #summarise(total_amount = sum(amount))
 
 
 ```
@@ -147,6 +150,8 @@ unique_committees <- donation_df %>%
   filter(party == "Republican") %>%
   group_by(recipient) %>%
   summarise()
+
+unique_committees
 ```
 
 
