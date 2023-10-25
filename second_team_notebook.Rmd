@@ -151,16 +151,16 @@ total_13 <- 1746423
 
 ```
 
-We looked back at 538's article to figure out who our missing 13th owner was. The full paragraph was, "Thirteen owners have contributed directly to Trump’s campaign or Trump super PACs in
-the 2020 election cycle, with contributions adding up to $1,746,423. That list of owners
-includes: Bill Foley (Vegas Golden Knights), Bill Hornbuckle (Las Vegas Aces), Charles
+We looked back at 538's article to figure out who our missing 13th owner was. The full paragraph was, "Thirteen owners have contributed directly to Trump’s campaign or Trump super PACs in the 2020 election cycle, with contributions adding up to $1,746,423. That list of owners includes: 
+
+Bill Foley (Vegas Golden Knights), Bill Hornbuckle (Las Vegas Aces), Charles
 Johnson (San Francisco Giants), Dan Devos (Orlando Magic), Jack Roush
 (NASCAR), James Dolan (New York Knicks and Rangers), Kelly Loeffler
 (Atlanta Dream), Mike Brown (Cincinnati Bengals), Peter Karmanos (Carolina
 Hurricanes), Robert Plummer (Los Angeles Dodgers), Roger Penske (Team
 Penske) Tilman Fertitta (Houston Rockets) and Todd Ricketts (Chicago Cubs)" 
 
-So we now know that we are missing Peter Karmanos of the Carolina Hurricanes. Let's look at his 2020 donation to figure out which PACs we are missing. 
+So we now know that we are missing Peter Karmanos of the Carolina Hurricanes. Let's look at his 2020 donations to figure out which PACs we are missing. 
 
 ```{r}
 
@@ -171,9 +171,9 @@ karmanos_donations <- donation_df |>
   filter(str_detect(owner,"Peter Karmanos"))|> 
   group_by(recipient)
 
-total_karmanos <- sum(karmanos_donation$amount)
+total_karmanos <- sum(karmanos_donations$amount)
 
-# Karmanos donated a total of $203702. 
+# Karmanos donated a total of $203,702. 
 
 total_karmanos
 
@@ -196,16 +196,71 @@ karmanos_president_total
 
 total_13 - total_12 - karmanos_president_total
 
-#We are still missing $67,400 in donations towards Trump. Which means I guess we are missing something from one of the 12 guys we found above. I AM CONFUSED AND I"M SORRY I COULN"T FIGURE IT OUT YOU GUYS. 
+#We are still missing $67,400 in donations towards Trump. Which means I guess we are missing something from one of the 12 guys we found above. I AM CONFUSED AND I'M SORRY I COULN"T FIGURE IT OUT YOU GUYS. 
   
 ```
-
+"By contrast, 20 owners have contributed directly to Biden or Biden’s super PACs, though at smaller totals, with overall contributions equaling $405,745."
 
 ```{r}
 # Find the 20 owners who contributed to Biden's campaign or Biden super PACs. 
- donation_df |> 
+ biden_2020 <- donation_df |> 
+  group_by(owner) |> 
+  filter(team != "Commissioner") |>
   filter(election_year == 2020) |> 
-  filter(str_detect(recipient,"BIDEN")) |>
-  group_by(owner) |>
-  summarise (count = n())
+  filter(
+    str_detect(recipient,"BIDEN") | 
+      str_detect(recipient,"UNITE THE COUNTRY") | 
+      str_detect(recipient,"AB PAC")) |>
+  summarise (total = sum(amount))
+
+total_biden = sum(biden_2020$total)
+
+total_biden
+
+
+```
+
+```{r}
+#Look at the  donations of the 20 articles named by 538 in the article as contributing to Biden or Biden PACs in 2020.  
+
+biden_owner_breakout <- donation_df |> 
+  filter(election_year == "2020") |> 
+  filter(owner == "Arthur Blank" | 
+           owner == "Arthur J. Rooney" |
+           owner == "Bill Hornbuckle" |
+           owner == "Billie Jean King" | 
+           owner == "David Blitzer" |
+           owner == "David Bonderman" |
+           owner == "Herbert Fritch" |
+           owner == "Herbert Simon" |
+           owner == "Ilana Kloss" |
+           owner == "James Dinan" |
+           owner == "James Dinan" |
+           owner == "Jeff Dickerson" | 
+           owner == "Jim Pohlad" | 
+           owner == "John Rogers" | 
+           owner == "Laura Ricketts" | 
+           owner == "Marc Lasry" | 
+           owner == "Mary Kelly" | 
+           owner == "Michael Alter" | 
+           owner == "Peter Guber" | 
+           owner == "Tom Werner" | 
+           owner == "Zygi Wilf")
+  
+biden_owner_breakout 
+
+```
+
+
+GROUP PACS BY PARTY 
+```{r}
+
+democratic_PACS_2020 <-donation_df |>
+  group_by(recipient)|> 
+  filter(party !=  "Republican")|> 
+  filter(election_year == 2020) |> 
+  arrange (recipient)
+
+democratic_PACS_2020
+
 ```
