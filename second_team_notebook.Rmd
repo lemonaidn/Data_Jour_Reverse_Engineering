@@ -151,9 +151,9 @@ total_13 <- 1746423
 
 ```
 
-We looked back at 538's article to figure out who our missing 13th owner was. The full paragraph was, "Thirteen owners have contributed directly to Trump’s campaign or Trump super PACs in the 2020 election cycle, with contributions adding up to $1,746,423. That list of owners includes: 
-
-Bill Foley (Vegas Golden Knights), Bill Hornbuckle (Las Vegas Aces), Charles
+We looked back at 538's article to figure out who our missing 13th owner was. The full paragraph was, "Thirteen owners have contributed directly to Trump’s campaign or Trump super PACs in
+the 2020 election cycle, with contributions adding up to $1,746,423. That list of owners
+includes: Bill Foley (Vegas Golden Knights), Bill Hornbuckle (Las Vegas Aces), Charles
 Johnson (San Francisco Giants), Dan Devos (Orlando Magic), Jack Roush
 (NASCAR), James Dolan (New York Knicks and Rangers), Kelly Loeffler
 (Atlanta Dream), Mike Brown (Cincinnati Bengals), Peter Karmanos (Carolina
@@ -173,32 +173,50 @@ karmanos_donations <- donation_df |>
 
 total_karmanos <- sum(karmanos_donations$amount)
 
-# Karmanos donated a total of $203,702. 
+# Karmanos donated a total of $203702. 
 
 total_karmanos
 
 total_karmanos - total_12
 
-# It looks like a lot of these contributions are for state-wide races, not the presidency. 
-
-karmanos_donations_president <- karmanos_donations |> 
-  filter(
-   recipient == "BLACK AMERICANS TO RE-ELECT THE PRESIDENT" | 
-    recipient == "REPUBLICAN NATIONAL COMMITTEE" | 
-    recipient == "HUCK PAC" | 
-    recipient == "STARS AND STRIPES FOREVER PAC")
-   
-karmanos_president_total <- sum(karmanos_donations_president$amount)
-
-karmanos_president_total
-
-#Okay, it looks like Karmanos donated $134,602 to presidential campaigns. 
-
-total_13 - total_12 - karmanos_president_total
-
-#We are still missing $67,400 in donations towards Trump. Which means I guess we are missing something from one of the 12 guys we found above. I AM CONFUSED AND I'M SORRY I COULN"T FIGURE IT OUT YOU GUYS. 
-  
 ```
+
+Checking the recipients of Karmanos' donations told us that we also needed to include "BLACK AMERICANS TO RE-ELECT THE PRESIDENT" in our list of committees we were filtering by. Only Karmanos and Johnson donated to that recipient though, and both donations were small amounts -- too small to make up the remaining gap.
+
+We wondered if 538 was including certain national, party-based committees recipients in their total for Trump, such as WINRED and the REPUBLICAN NATIONAL COMMITTEE. However, including either or both of those committees still yielded the incorrect total.
+
+```{r}
+trump_2020 <- donation_df |> 
+  filter(election_year == 2020) |> 
+  filter(str_detect(recipient,"TRUMP") |
+           recipient == "BLACK AMERICANS TO RE-ELECT THE PRESIDENT" |
+            recipient == "REPUBLICAN NATIONAL COMMITTEE" |
+            recipient == "WINRED") |>
+  group_by(owner) |>
+  summarise(contributions = sum(amount))
+
+sum(trump_2020$contributions)
+```
+
+Finally, we found this webpage from The Center for Public Integrity that lists a number of Trump-affiliated PACs and a search of the data revealed that America First Action Inc. received in 2020 -- the exact amount to make up the remaining gap between our total and 538's total.
+
+https://publicintegrity.org/politics/donald-trump-army-super-pacs-maga-nonprofits/
+
+```{r}
+
+trump_2020 <- donation_df |> 
+  filter(election_year == 2020) |> 
+  filter(str_detect(recipient, "TRUMP") |
+          recipient == "BLACK AMERICANS TO RE-ELECT THE PRESIDENT" |
+           recipient == "AMERICA FIRST ACTION, INC.") |>
+  group_by(owner) |>
+  summarise(contributions = sum(amount))
+
+sum(trump_2020$contributions)
+
+
+```
+
 "By contrast, 20 owners have contributed directly to Biden or Biden’s super PACs, though at smaller totals, with overall contributions equaling $405,745."
 
 ```{r}
@@ -219,6 +237,7 @@ total_biden
 
 
 ```
+
 
 ```{r}
 #Look at the  donations of the 20 articles named by 538 in the article as contributing to Biden or Biden PACs in 2020.  
