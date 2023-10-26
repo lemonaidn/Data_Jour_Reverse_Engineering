@@ -339,10 +339,11 @@ Okay, how did we also miss John Rogers? Let's look him up too.
 ```{r}
 donation_df |> 
   filter(election_year == 2020) |> 
-  filter(owner == "John Rogers")
+  filter(owner == "John Rogers") |> 
+  arrange(recipient)
 ```
 
-We started Googling these PACs to figure out which Rogers donation was actually supporting Biden. Again, this was time consuming and not at all efficient. We were left pining for a column that indicated whether a PAC was for congress or the presidential election. At long last, we found that "UNITE THE COUNTY" supported Biden in 2020. https://unitethecountry.com/
+Ah, we missed him because none of the PACs he donated to included "Biden." We started Googling these PACs to figure out which Rogers donation was actually supporting Biden. Again, this was time consuming and not at all efficient. We were left pining for a column that indicated whether a PAC was for congress or the presidential election. At long last, we found that "UNITE THE COUNTY" supported Biden in 2020. https://unitethecountry.com/
 
 ```{r}
 # Let's revisit the biden_2020 dataframe, adding code to exclude commissioners and include the UNITE THE COUNTRY PAC. 
