@@ -130,10 +130,11 @@ wnba_no_loeffler
 
 --
 
-Here is where things got to be a little sticky for us. In our first attempt (per the code below), we were only able to find 12 of the 13 owners mentioned by 538. We filtered for election year 2020, used string detect "Trump" to find committees in the recipient column supporting Trump's reelection. We saved these 12 owners in the dataframe "trump_2020" and we know that their contributions total to $1,544,421. That leaves one owner and $202,002 in donations missing. 
+Here is where things got to be a little sticky for us. In our first attempt (per the code below), we were only able to find 12 of the 13 owners mentioned by 538. We filtered for election year 2020, used string detect "Trump" to find committees in the recipient column supporting Trump's reelection. We saved these 12 owners in the dataframe "trump_2020" and we found that their contributions total to $1,544,421. That leaves one owner and $202,002 in donations missing. 
 
 ```{r}
- # Update recipient values to all upper case
+ # Update recipient values to all upper case for ease of searching. 
+
 donation_df <- donation_df |> 
   mutate(recipient = str_to_upper(recipient))
   
@@ -163,7 +164,6 @@ total_13 <- 1746423
 We looked back at 538's article to figure out who our missing 13th owner was. The full paragraph was, "Thirteen owners have contributed directly to Trump’s campaign or Trump super PACs in the 2020 election cycle, with contributions adding up to $1,746,423. That list of owners includes: Bill Foley (Vegas Golden Knights), Bill Hornbuckle (Las Vegas Aces), Charles Johnson (San Francisco Giants), Dan Devos (Orlando Magic), Jack Roush (NASCAR), James Dolan (New York Knicks and Rangers), Kelly Loeffler (Atlanta Dream), Mike Brown (Cincinnati Bengals), Peter Karmanos (Carolina Hurricanes), Robert Plummer (Los Angeles Dodgers), Roger Penske (Team Penske) Tilman Fertitta (Houston Rockets) and Todd Ricketts (Chicago Cubs)." 
 
 Comparing this list against our owners in trump_2020, we now know that we are missing Peter Karmanos of the Carolina Hurricanes. Let's look at his 2020 donations to figure out which Trump-supporting PACs we are missing. If they don't have Trump in the name, what are they called? 
-
 ```{r}
 
 # Find all 2020 donations from Peter Karmanos, grouped by recipient so we can examine the list of PACs. 
@@ -175,18 +175,16 @@ karmanos_donations <- donation_df |>
 
 karmanos_donations 
 
-
 ```
 
-Examening this list, many donations appear to be for candidates for Senate. One PAC stood out to us as appearing to be for the presidential race and specifically for Trump: "BLACK AMERICANS TO RE-ELECT THE PRESIDENT" in our list of committees we were filtering by. Let's add that PAC to our code and see what the new total is. 
-
+Examuning this list, many donations appear to be for candidates for Senate. One PAC stood out to us as appearing to be for the presidential race and specifically for Trump: "BLACK AMERICANS TO RE-ELECT THE PRESIDENT." Let's add that PAC to our code and see what the new total is. 
 
 ```{r}
 # Add contributions to "BLACK AMERICANS TO RE-ELECT THE PRESIDENT" to trump_2020. 
+
 trump_2020 <- donation_df |> 
   filter(election_year == 2020) |> 
-  filter(str_detect(recipient,"TRUMP") |
-           recipient == "BLACK AMERICANS TO RE-ELECT THE PRESIDENT")  |>
+  filter(str_detect(recipient,"TRUMP") | recipient == "BLACK AMERICANS TO RE-ELECT THE PRESIDENT")  |>
   group_by(owner) |>
   summarise(contributions = sum(amount))
 
@@ -206,11 +204,11 @@ still_missing
 
 ```
 
-
-Okay, we are still missing a big chunk of money! What PAC are we not seeing that supports Trump? We wondered if 538 was including certain national, party-based committees recipients in their total for Trump, such as WINRED and the REPUBLICAN NATIONAL COMMITTEE. However, including either or both of those committees still yielded the incorrect total.
+What PAC are we still not seeing that supports Trump? We wondered if 538 was including certain national, party-based committee recipients in their total for Trump, such as WINRED and the REPUBLICAN NATIONAL COMMITTEE. However, including either or both of those committees still yielded the incorrect total.
 
 ```{r}
-# Add WINRED & the RNC. 
+
+# Add WINRED and the RNC. 
 
 trump_2020 <- donation_df |> 
   filter(election_year == 2020) |> 
@@ -224,15 +222,18 @@ trump_2020 <- donation_df |>
 sum(trump_2020$contributions)
 
 #Total is $2,424,343. That's over the $1,746,423 we are looking for. 
+
 ```
 
 Finally, we found this webpage from The Center for Public Integrity that lists a number of Trump-affiliated PACs: 
-https://publicintegrity.org/politics/donald-trump-army-super-pacs-maga-nonprofits/
+https://publicintegrity.org/politics/donald-trump-army-super-pacs-maga-nonprofits/ 
 
-Now we were taking on a data analysis method we're not proud of: scanning non-Democratic 2020 donations by our 13 owners and seeing if they were in this list. 
+Now we were taking on a data analysis method we're not proud of: scanning non-Democratic 2020 donations by our 13 owners and seeing if they were in this list. Is this what 538 did? Why not add a column that designates a PAC as supporting Trump or Biden? Or designates that its for the presidential race versus congress? If you have to make that determination in the end anyways, why not track your work in a column, 538? 
 
-Bill Foley (Vegas Golden Knights), Bill Hornbuckle (Las Vegas Aces), Charles Johnson (San Francisco Giants), Dan Devos (Orlando Magic), Jack Roush (NASCAR), James Dolan (New York Knicks and Rangers), Kelly Loeffler (Atlanta Dream), Mike Brown (Cincinnati Bengals), Peter Karmanos (Carolina Hurricanes), Robert Plummer (Los Angeles Dodgers), Roger Penske (Team Penske) Tilman Fertitta (Houston Rockets) and Todd Ricketts
 ```{r}
+
+# Pull a list of all non-Democratic recipients of donations from the 13 Trump-supporting owners. 
+
 trump_owner_breakout <- donation_df |> 
   group_by(recipient)|> 
   filter(party !=  "Democrat")|> 
@@ -256,9 +257,7 @@ trump_owner_breakout
 
 ```
 
-Finally we noticed that America First Action Inc. received $200,000 in 2020 from Dan Devos, who was in our list of the 13 owners. This was the exact amount to make up the remaining gap between our total and 538's total, and according to the Center for Public Integrity this PAC supported Trump in 2020. 
-
-Below is the code that enabled us to successfully replicate 538's finding at last. 
+We see here that America First Action Inc. received $200,000 in 2020 from Dan Devos. This was the exact amount to make up the remaining gap between our total and 538's total, and according to the Center for Public Integrity this PAC supported Trump in 2020. Below is the code that enabled us to successfully replicate 538's finding at last. 
 
 ```{r}
 
@@ -281,11 +280,10 @@ final_total_13
 # $1,746,423. Bingo. 
 ```
 
-On to the second part of Finding 5: "By contrast, 20 owners have contributed directly to Biden or Biden’s super PACs, though at smaller totals, with overall contributions equaling $405,745."
-
-Like above, let's start by filtering by 2020 and recipients that include "Biden" to see how many owners we have. 
+On to the second part of Finding 5: "By contrast, 20 owners have contributed directly to Biden or Biden’s super PACs, though at smaller totals, with overall contributions equaling $405,745." Like above, let's start by filtering by 2020 and recipients that include "Biden" to see how many owners we have. 
 
 ```{r}
+
 # Find the 20 owners who contributed to Biden's campaign or Biden super PACs. 
 
 biden_2020 <- donation_df |> 
@@ -296,7 +294,7 @@ biden_2020 <- donation_df |>
 
 glimpse(biden_2020)
 
-# We have 20 rows! Amazing. Now how much have they collectively donated to Biden? 
+# We have 20 rows, that looks good. Now how much have they collectively donated to Biden? 
 
 total_biden = sum(biden_2020$total)
 
@@ -311,8 +309,9 @@ missing_biden = total_20 - total_biden
 missing_biden 
 
 # We are still missing $177,200 in donations for Biden-supporting PACs. 
+
 ```
-We knew we were yet again missing some PACs that didn't have "Biden" in the name. So again we looked back at the 538 article for the list of owners and found: 
+We know now we were missing some PACs that didn't have "Biden" in the name. So again we looked back at the 538 article for the list of owners and found: 
 
 "By contrast, 20 owners have contributed directly to Biden or Biden’s super PACs, though at smaller totals, with overall contributions equaling $405,745. The Biden contributors include:
 
@@ -320,33 +319,40 @@ Arthur Blank (Atlanta Falcons), Arthur J. Rooney II (Pittsburgh Steelers), Billi
 
 Comparing that list of owners to our owners in the biden_2020 dataframe, 2 things became clear: 
 
-1 - Our biden_2020 dataframe had Adam Silver and 538 did not include him. 
-2 - biden_2020 was missing John Rogers of the Chicago Sky. 
+1: Our biden_2020 dataframe had Adam Silver and 538 did not include him. 
+2: biden_2020 was missing John Rogers of the Chicago Sky. 
 
-Why isn't 538 including Adam Silver? Let's find him in the original donation_df dataframe. Aha! He does not have a team listed - he is a commissioner! That must be why 538 didn't count him in the list of 20 team owners who supported Biden. This made us scratch our heads at why the commissioners would be included in the dataframe just to be excluded a stat like this. But that's a question for another day. 
+Why isn't 538 including Adam Silver? Let's find his donations in the original donation_df dataframe. Aha! He does not have a team listed - he is a commissioner! That must be why 538 didn't count him in the list of 20 team owners who supported Biden. This made us scratch our heads at why the commissioners would be included in the dataframe just to be excluded from a stat like this. 
 
 ```{r}
+
 # Look at Adam Silver contributions in 2020. 
 
 donation_df |> 
   filter(election_year == 2020) |> 
-  filter(owner == "Adam Silver")
+  filter(owner == "Adam Silver") |> 
+  arrange(recipient)
+
 ```
 
-Okay, how did we also miss John Rogers? Let's look him up too. 
-
+Okay, how did we also miss John Rogers? He must not have contributed to a PAC with "Biden" in the name but that actually does support Biden as a candidate. Let's look up his donations for clues. 
 
 ```{r}
+
+# Look atJohn Rogers contributions in 2020. 
+
 donation_df |> 
   filter(election_year == 2020) |> 
   filter(owner == "John Rogers") |> 
   arrange(recipient)
+
 ```
 
-Ah, we missed him because none of the PACs he donated to included "Biden." We started Googling these PACs to figure out which Rogers donation was actually supporting Biden. Again, this was time consuming and not at all efficient. We were left pining for a column that indicated whether a PAC was for congress or the presidential election. At long last, we found that "UNITE THE COUNTY" supported Biden in 2020. https://unitethecountry.com/
+We started Googling these PACs to figure out which Rogers donation was actually supporting Biden. Again, this was time consuming and not at all efficient. We were still pining for a column that indicated whether a PAC was for congress or the presidential election. At long last, we found that "UNITE THE COUNTY" supported Biden in 2020. https://unitethecountry.com/
 
 ```{r}
-# Let's revisit the biden_2020 dataframe, adding code to exclude commissioners and include the UNITE THE COUNTRY PAC. 
+
+# Revisit the biden_2020 dataframe, adding code to exclude commissioners and include the UNITE THE COUNTRY PAC. 
 
 biden_2020 <- donation_df |> 
   group_by(owner) |> 
@@ -371,7 +377,7 @@ missing_biden_new
 
 ```
 
-There is still at least one missing pack and $100,000 in donations to Biden unaccounted for. This was not pretty, but let's look at the PACs that all 20 confirmed Biden-supporting owners gave to in 2020. And let's keep Googling them. 
+There is still at least one missing pack and $100,000 in donations to Biden unaccounted for. Like we did with Trump donations above, let's look at the PACs that all 20 confirmed Biden-supporting owners gave to in 2020. And let's keep Googling them. 
 
 ```{r}
 
@@ -430,6 +436,7 @@ total_biden_final = sum(biden_2020$total)
 total_biden_final
 
 # There is the $405,745 we were looking to match from the article. 
+
 ```
 
 ## Group Memo: 
