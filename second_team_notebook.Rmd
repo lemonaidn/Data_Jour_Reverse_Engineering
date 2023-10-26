@@ -1,16 +1,25 @@
 ---
-title: "CFS_reverse_engineering_project"
+title: "Group 3 Reverse Engineering Project"
+authors: Aya Hussein, Aidan Hughes, Caley Fox Shannon 
 output: html_document
 date: "2023-10-23"
 ---
+
+We are reverse engineering 538's article, "Inside The Political Donation History Of Wealthy Sports Owners," published October 28, 2020. 
+
+Link to article: https://fivethirtyeight.com/features/inside-the-political-donation-history-of-wealthy-sports-owners/
+Link to GitHub repository: https://github.com/fivethirtyeight/data/tree/master/sports-political-donations
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-##Load the data from 538.
+##Load the data from 538 and clean it.
 
-Clean the column names to replace spaces with an underscore and change case to lower. Convert the amount column from a character to a dbl, removing the dollar sign and the comma from each amount entry. We used mutate(parse_number()) to do so. 
+- After downloading the .csv file from 538's GitHub repository, read it into R using read_csv. Call the dataframe donation_df. 
+- Load the necessary libraries: tidyverse, reader, scales & janitor. 
+- Clean the column names to replace spaces with an underscore and change case to lower. 
+- Convert the amount column from a character to a dbl, removing the dollar sign and the comma from each amount entry. We used mutate(parse_number()) to do so. 
 
 ```{r}
 library(tidyverse)
@@ -22,11 +31,11 @@ library(janitor)
 
 donation_df = read_csv("sports-political-donations.csv")
 
-#clean column names to change case to lower and remove spaces
+# Clean column names to change case to lower and remove spaces. 
 
 donation_df <- clean_names(donation_df)
 
-# Use parse_number to convert the amount column to dbl
+# Use parse_number to convert the amount column to dbl. 
 
 donation_df <- donation_df |> 
   mutate(amount = parse_number(amount))
@@ -38,28 +47,29 @@ donation_df
 
 “A deep search in the Federal Election Commission database of campaign finances for principal owners, controlling owners, co-owners and commissioners from the NBA, NFL, NHL, WNBA, MLB and NASCAR reveals that this deep-pocketed group has sent $34.2 million (72.9 percent) to Republican campaigns or super PACs purely supporting Republican causes, compared to $10.1 million (21.5 percent) to Democrats over the past three elections.”
 
-To determine the total amount of donations by political party, we decided to group_by party and use summarise() to create a party_total column that sums the amount donated per party. We then arranged in descending order to get the totals from highest to lowest. We successfully reproduced this first finding from 538's article. 
+To determine the total amount of donations by political party, we decided to group_by party and use summarise() to create a party_total column that sums the amount donated per party. We also used mutate() to create a new column showing the party's share (percentage) of all donations. We used percent() to display this result as a percent. We then arranged in descending order to get the totals from highest to lowest. We successfully reproduced this first finding from 538's article. 
 
 ```{r}
 
 donations_by_party <- donation_df |>
   group_by(party) |>
   summarise(party_total = sum(amount)) |>
+  mutate(pct_of_total_donations = percent(party_total / sum(party_total)))|> 
   arrange(desc(party_total))
 
 donations_by_party
 
 ```
 
-##Finding 2
+##Finding 2:
 
 “Overall, 51.7 percent of all contributions by WNBA owners went to Democrats, with 42.3 percent going to Republicans.”
 
-To reproduce this finding, we initially tried filtering by league = "WNBA," but we were getting incorrect results (Republican was way too high). We realized that this method was missing some rows because certain owners own teams in multiple leagues, and those entries not showing up here. To fix this, we used str_detect to find all correct instances of WNBA in League, even if it was paired with other leagues in the same record. 
+--
 
-Then, we grouped_by party and used summarise() to sum the total donations by party for all WNBA owners. This new column was called party_total. To convert that figure to percentages, we used mutate to create a new column called pct_of total. We calculated the values by dividing the amount for each party by the total amount across all parties. 
+To reproduce this finding, we initially tried filtering by league = "WNBA," but we were getting incorrect results (the Republican share was way too high). After scanning our full dataset, we realized that this method was missing some rows because certain owners own teams in multiple leagues, and those entries were not showing up. To fix this, we used str_detect to find all correct instances of WNBA in League, even if it was paired with other leagues in the same record. 
 
-Last, we wanted to show the pct_of_total not as a decimal but as a percentage (with percent sign) in the dataset. We Googled this and found that a package called scales has a function percent() that does this. We loaded scales at the top of our file, then we used the percent() function to display the percentage as we wanted in the pct_of_total column. Our findings match 538's here too, hooray! 
+Then, we grouped_by(party) and used summarise() to sum the total donations by party for all WNBA owners. This new column was called party_total. To convert that figure to percentages, we used mutate to create a new column called pct_of total divides the total amount for each party by the total amount across all parties. We used percent() to display this result as a percent. 
 
 ```{r}
 
@@ -74,14 +84,13 @@ wnba_donations
 
 ```
 
-##Finding 3
+##Finding 3: 
 
-"And of the $1.3 million contributed by WNBA owners to Republicans, 65.5 percent comes from Kelly Loeffler, the Republican from Georgia who is co-owner of the Atlanta Dream." We would like to see what the WNBA figures would look like if we removed the major outlier, Kelly Loeffler. This would give a better sense of overall giving trends in the WNBA, which is the only league that tends to contribute more to Democratic causes. 
+"And of the $1.3 million contributed by WNBA owners to Republicans, 65.5 percent comes from Kelly Loeffler, the Republican from Georgia who is co-owner of the Atlanta Dream." 
+
 --
 
-We know from the code above that WNBA owners contributed $1.3 million to Republican causes. Then we needed to replicate Loeffler's share of that $1.3 million by filtering for her donations to Republican causes. They totaled $876,150. But we needed to see that figure as a percent of the $1.3 million still. So we took the loeffler_r_total variable and divided by row 2 (total Republican donations) from the party_total variable in the wnba_donations dataset above. We replicated 538's finding that Loeffler gave 65.5% of WNBA owners' contributions to Republicans.
-
-
+We know from the results from the code above that WNBA owners contributed over $1.3 million to Republican causes. Then we needed to replicate Loeffler's share of that $1.3 million by filtering for her donations and then by the Republican party. They totaled $876,150. But we needed to see that figure as a percent of the $1.3 million still. So we made the loeffler_r_total variable to represent her donation, and divided that by row 2 (total Republican donations) from the party_total variable in the wnba_donations dataset above. We replicated 538's finding that Loeffler gave 65.5% of WNBA owners' contributions to Republicans.
 
 ```{r}
 
@@ -95,14 +104,13 @@ loeffler_r_wnba_donations <- donation_df |>
 loeffler_r_wnba_donations  
    
 ```
-Note 1: We initially used the percent() function to find this answer but it kept giving us 65%, which is less accurate. It did not match the 65.5% clearly stated in 538's article and we could not figure out why the code was rounding. So we ultimately scrapped that function and instead multiplied Loeffler's  share of the donations by 100 to generate a percent for this figure. 
+Note 1: One sticking point we'll note here is that R is seeming to be erratic in how it wants to display percentages. Using percent() in Finding 1 gives us an answer with four decimal points. Using it in Finding 2 gives us one decimal point. And when we initially used percent() to find the answer here for Finding 3, but it kept giving us 65%, with no decimals at all. It did not match the 65.5% clearly stated in 538's article and we could not figure out why the code was rounding and therefore giving us a less accurate answer. So we ultimately scrapped that function and instead multiplied Loeffler's  share of the donations by 100 to generate a percent for this figure. 
 
+Note 2: As Derek suggested after a quick chat, another method to write the above code without using "wnba_donations$party_total[2] within the mutate function, would have been to store the corresponding value in a standalone variable beforehand and then just call that variable instead of wnba_donations$party_total[2]."
 
-Note 2: as Derek suggested after a quick chat, another method to write the above code without using "wnba_donations$party_total[2] within the mutate function, would have been to store the corresponding value in a standalone variable beforehand and then just call that variable instead of wnba_donations$party_total[2]"
+## Finding 4: 
 
-## Finding 4
-
-Although this wasn't present in the article, we also wanted to see what the WNBA's political contributions would look like if we removed Kelly Loeffler, this big outlier. We used a very similar code to Finding #2 (league is WNBA, group by party, sum the amounts), while also filtering out any owners with the name Kelly Loeffler. We found that without her, 72% of WNBA donations went to Democrats. That's over a 20% jump from the 51.7% giving to Democrats that we saw in Finding #2. 
+Although this wasn't present in the article, we also wanted to see what the WNBA's political contributions would look like if we removed Kelly Loeffler, the big outlier. We used a very similar code to Finding 2 (league is WNBA, group by party, sum the amounts), while also filtering out any owners with the name Kelly Loeffler. We found that without her, 72% of WNBA donations went to Democrats. That's over a 20% jump from the 51.7% giving to Democrats that we saw in Finding 2. 
 
 ```{r}
 wnba_no_loeffler <- donation_df |> 
@@ -120,8 +128,9 @@ wnba_no_loeffler
 
 “Thirteen owners have contributed directly to Trump’s campaign or Trump super PACs in the 2020 election cycle, with contributions adding up to $1,746,423. [...] By contrast, 20 owners have contributed directly to Biden or Biden’s super PACs, though at smaller totals, with overall contributions equaling $405,745.”
 
+--
 
-In our first attempt (per the code below), we were only able to find 12 of the 13 owners mentioned by 538. We filtered for election year 2020, used string detect "Trump" to find committees in the recipient column supporting Trump's reelection. We saved these 12 owners in the dataset "trump_2020" and we know that their contributions total to $1,544,421. That leaves $202,002 missing. 
+Here is where things got to be a little sticky for us. In our first attempt (per the code below), we were only able to find 12 of the 13 owners mentioned by 538. We filtered for election year 2020, used string detect "Trump" to find committees in the recipient column supporting Trump's reelection. We saved these 12 owners in the dataframe "trump_2020" and we know that their contributions total to $1,544,421. That leaves one owner and $202,002 in donations missing. 
 
 ```{r}
  # Update recipient values to all upper case
@@ -135,57 +144,74 @@ trump_2020 <- donation_df |>
   filter(str_detect(recipient,"TRUMP")) |>
   group_by(owner)
 
-#Huh. We only found 12 owners this way. How much did they contribute together? 
+# We only found 12 owners this way. How much did they contribute together? 
 
 total_12 <- sum(trump_2020$amount)
 
 total_12
 
-#They contributed $1,544,421. How much money are we still looking for? 
+# They contributed $1,544,421. How much money are we still looking for? 
 
 1746423 - total_12
 
-#We need to find $202,002 in contributions for Trump still. Let's save the total we're looking for, we may need it as a variable. 
+# We need to find $202,002 in contributions for Trump still. Let's save the total we're looking for, we may need it as a variable. 
 
 total_13 <- 1746423 
 
 ```
 
-We looked back at 538's article to figure out who our missing 13th owner was. The full paragraph was, "Thirteen owners have contributed directly to Trump’s campaign or Trump super PACs in
-the 2020 election cycle, with contributions adding up to $1,746,423. That list of owners
-includes: Bill Foley (Vegas Golden Knights), Bill Hornbuckle (Las Vegas Aces), Charles
-Johnson (San Francisco Giants), Dan Devos (Orlando Magic), Jack Roush
-(NASCAR), James Dolan (New York Knicks and Rangers), Kelly Loeffler
-(Atlanta Dream), Mike Brown (Cincinnati Bengals), Peter Karmanos (Carolina
-Hurricanes), Robert Plummer (Los Angeles Dodgers), Roger Penske (Team
-Penske) Tilman Fertitta (Houston Rockets) and Todd Ricketts (Chicago Cubs)" 
+We looked back at 538's article to figure out who our missing 13th owner was. The full paragraph was, "Thirteen owners have contributed directly to Trump’s campaign or Trump super PACs in the 2020 election cycle, with contributions adding up to $1,746,423. That list of owners includes: Bill Foley (Vegas Golden Knights), Bill Hornbuckle (Las Vegas Aces), Charles Johnson (San Francisco Giants), Dan Devos (Orlando Magic), Jack Roush (NASCAR), James Dolan (New York Knicks and Rangers), Kelly Loeffler (Atlanta Dream), Mike Brown (Cincinnati Bengals), Peter Karmanos (Carolina Hurricanes), Robert Plummer (Los Angeles Dodgers), Roger Penske (Team Penske) Tilman Fertitta (Houston Rockets) and Todd Ricketts (Chicago Cubs)." 
 
-So we now know that we are missing Peter Karmanos of the Carolina Hurricanes. Let's look at his 2020 donations to figure out which PACs we are missing. 
+Comparing this list against our owners in trump_2020, we now know that we are missing Peter Karmanos of the Carolina Hurricanes. Let's look at his 2020 donations to figure out which Trump-supporting PACs we are missing. If they don't have Trump in the name, what are they called? 
 
 ```{r}
 
-# Find Peter Karmanos, who according to 538 is our missing 13th owner. 
+# Find all 2020 donations from Peter Karmanos, grouped by recipient so we can examine the list of PACs. 
 
 karmanos_donations <- donation_df |> 
   filter(election_year == 2020) |> 
   filter(str_detect(owner,"Peter Karmanos"))|> 
   group_by(recipient)
 
-total_karmanos <- sum(karmanos_donations$amount)
+karmanos_donations 
 
-# Karmanos donated a total of $203702. 
-
-total_karmanos
-
-total_karmanos - total_12
 
 ```
 
-Checking the recipients of Karmanos' donations told us that we also needed to include "BLACK AMERICANS TO RE-ELECT THE PRESIDENT" in our list of committees we were filtering by. Only Karmanos and Johnson donated to that recipient though, and both donations were small amounts -- too small to make up the remaining gap.
+Examening this list, many donations appear to be for candidates for Senate. One PAC stood out to us as appearing to be for the presidential race and specifically for Trump: "BLACK AMERICANS TO RE-ELECT THE PRESIDENT" in our list of committees we were filtering by. Let's add that PAC to our code and see what the new total is. 
 
-We wondered if 538 was including certain national, party-based committees recipients in their total for Trump, such as WINRED and the REPUBLICAN NATIONAL COMMITTEE. However, including either or both of those committees still yielded the incorrect total.
 
 ```{r}
+# Add contributions to "BLACK AMERICANS TO RE-ELECT THE PRESIDENT" to trump_2020. 
+trump_2020 <- donation_df |> 
+  filter(election_year == 2020) |> 
+  filter(str_detect(recipient,"TRUMP") |
+           recipient == "BLACK AMERICANS TO RE-ELECT THE PRESIDENT")  |>
+  group_by(owner) |>
+  summarise(contributions = sum(amount))
+
+# What is the new running total for all contributions to Trump? Have we hit our target of $1,746,423? 
+
+new_total_13 = sum(trump_2020$contributions)
+
+new_total_13 
+
+# It's $1,546,423. How much money are we still missing? 
+
+still_missing = total_13 - new_total_13 
+
+still_missing
+
+# We still need to find $200,000 in contributions to Trump-supporting PACs. 
+
+```
+
+
+Okay, we are still missing a big chunk of money! What PAC are we not seeing that supports Trump? We wondered if 538 was including certain national, party-based committees recipients in their total for Trump, such as WINRED and the REPUBLICAN NATIONAL COMMITTEE. However, including either or both of those committees still yielded the incorrect total.
+
+```{r}
+# Add WINRED & the RNC. 
+
 trump_2020 <- donation_df |> 
   filter(election_year == 2020) |> 
   filter(str_detect(recipient,"TRUMP") |
@@ -196,13 +222,20 @@ trump_2020 <- donation_df |>
   summarise(contributions = sum(amount))
 
 sum(trump_2020$contributions)
+
+#Total is $2,424,343. That's over the $1,746,423 we are looking for. 
 ```
 
-Finally, we found this webpage from The Center for Public Integrity that lists a number of Trump-affiliated PACs and a search of the data revealed that America First Action Inc. received in 2020 -- the exact amount to make up the remaining gap between our total and 538's total.
-
+Finally, we found this webpage from The Center for Public Integrity that lists a number of Trump-affiliated PACs: 
 https://publicintegrity.org/politics/donald-trump-army-super-pacs-maga-nonprofits/
 
+Now we were taking on a data analysis method we're not proud of: scanning 2020 donations by our 13 owners and seeing if they were in this list. Finally we noticed that America First Action Inc. received $200,000 in 2020 from Dan Devos, who was in our list of the 13 owners. This was the exact amount to make up the remaining gap between our total and 538's total, and according to the Center for Public Integrity this PAC supported Trump in 2020. 
+
+Below is the code that enabled us to successfully replicate 538's finding at last. 
+
 ```{r}
+
+# Add "AMERICA FIRST ACTION, INC." 
 
 trump_2020 <- donation_df |> 
   filter(election_year == 2020) |> 
@@ -212,37 +245,113 @@ trump_2020 <- donation_df |>
   group_by(owner) |>
   summarise(contributions = sum(amount))
 
-sum(trump_2020$contributions)
+# Now how much did our 13 owners contribute? 
 
+final_total_13 = sum(trump_2020$contributions)
 
+final_total_13
+
+# $1,746,423. Bingo. 
 ```
 
-"By contrast, 20 owners have contributed directly to Biden or Biden’s super PACs, though at smaller totals, with overall contributions equaling $405,745."
+On to the second part of Finding 5: "By contrast, 20 owners have contributed directly to Biden or Biden’s super PACs, though at smaller totals, with overall contributions equaling $405,745."
+
+Like above, let's start by filtering by 2020 and recipients that include "Biden" to see how many owners we have. 
 
 ```{r}
 # Find the 20 owners who contributed to Biden's campaign or Biden super PACs. 
- biden_2020 <- donation_df |> 
+
+biden_2020 <- donation_df |> 
   group_by(owner) |> 
-  filter(team != "Commissioner") |>
   filter(election_year == 2020) |> 
-  filter(
-    str_detect(recipient,"BIDEN") | 
-      str_detect(recipient,"UNITE THE COUNTRY") | 
-      str_detect(recipient,"AB PAC")) |>
+  filter(str_detect(recipient,"BIDEN")) |> 
   summarise (total = sum(amount))
+
+glimpse(biden_2020)
+
+# We have 20 rows! Amazing. Now how much have they collectively donated to Biden? 
 
 total_biden = sum(biden_2020$total)
 
 total_biden
 
+# Answer is $228,545. That's short, how much money are we missing from the 20 owners? 
 
+total_20 <- 405745
+
+missing_biden = total_20 - total_biden
+
+missing_biden 
+
+# We are still missing $177,200 in donations for Biden-supporting PACs. 
 ```
+We knew we were yet again missing some PACs that didn't have "Biden" in the name. So again we looked back at the 538 article for the list of owners and found: 
+
+"By contrast, 20 owners have contributed directly to Biden or Biden’s super PACs, though at smaller totals, with overall contributions equaling $405,745. The Biden contributors include:
+
+Arthur Blank (Atlanta Falcons), Arthur J. Rooney II (Pittsburgh Steelers), Billie Jean King (Dodgers), David Blitzer (Philadelphia 76ers and New Jersey Devils), David Bonderman (Seattle Kraken), Herbert Fritch (Nashville Predators), Herbert Simon (Indiana Pacers and Fever), Ilana Kloss (Dodgers), James Dinan (Milwaukee Bucks), Jeff Dickerson (Spire Motorsports), Jim Pohlad (Minnesota Twins), John Rogers (Chicago Sky), Laura Ricketts (Cubs), Marc Lasry (Bucks), Mary Kelly (Denver Broncos), Michael Alter (Sky), Peter Guber (Golden State Warriors and Dodgers), Tom Werner (Boston Red Sox), Zygi Wilf (Minnesota Vikings) and Hornbuckle." 
+
+Comparing that list of owners to our owners in the biden_2020 dataframe, 2 things became clear: 
+
+1 - Our biden_2020 dataframe had Adam Silver and 538 did not include him. 
+2 - biden_2020 was missing John Rogers of the Chicago Sky. 
+
+Why isn't 538 including Adam Silver? Let's find him in the original donation_df dataframe. Aha! He does not have a team listed - he is a commissioner! That must be why 538 didn't count him in the list of 20 team owners who supported Biden. This made us scratch our heads at why the commissioners would be included in the dataframe just to be excluded a stat like this. But that's a question for another day. 
+
+```{r}
+# Look at Adam Silver contributions in 2020. 
+
+donation_df |> 
+  filter(election_year == 2020) |> 
+  filter(owner == "Adam Silver")
+```
+
+Okay, how did we also miss John Rogers? Let's look him up too. 
 
 
 ```{r}
-#Look at the  donations of the 20 articles named by 538 in the article as contributing to Biden or Biden PACs in 2020.  
+donation_df |> 
+  filter(election_year == 2020) |> 
+  filter(owner == "John Rogers")
+```
+
+We started Googling these PACs to figure out which Rogers donation was actually supporting Biden. Again, this was time consuming and not at all efficient. We were left pining for a column that indicated whether a PAC was for congress or the presidential election. At long last, we found that "UNITE THE COUNTY" supported Biden in 2020. https://unitethecountry.com/
+
+```{r}
+# Let's revisit the biden_2020 dataframe, adding code to exclude commissioners and include the UNITE THE COUNTRY PAC. 
+
+biden_2020 <- donation_df |> 
+  group_by(owner) |> 
+  filter(team != "Commissioner") |>
+  filter(election_year == 2020) |> 
+  filter(str_detect(recipient,"BIDEN") | (recipient == "UNITE THE COUNTRY")) |> 
+  summarise (total = sum(amount))
+
+# How much do the Biden donations total to now? 
+
+total_biden_new = sum(biden_2020$total)
+
+total_biden_new
+
+# $305,745 is closer. How much are we still missing? 
+
+missing_biden_new = total_20 - total_biden_new
+
+missing_biden_new
+
+# We are still missing $100,000. 
+
+```
+
+There is still at least one missing pack and $100,000 in donations to Biden unaccounted for. This was not pretty, but let's look at the PACs that all 20 confirmed Biden-supporting owners gave to in 2020. And let's keep Googling them. 
+
+```{r}
+
+# Look at the non-Republican donations of the 20 owners named by 538 in the article as contributing to Biden or Biden PACs in 2020.  
 
 biden_owner_breakout <- donation_df |> 
+  group_by(recipient)|> 
+  filter(party !=  "Republican")|> 
   filter(election_year == "2020") |> 
   filter(owner == "Arthur Blank" | 
            owner == "Arthur J. Rooney" |
@@ -270,16 +379,30 @@ biden_owner_breakout
 
 ```
 
+After extensively Googling any PACs we did not recognize, it turns out that "AB PAC" supported Biden in 2020. https://www.americanbridgepac.org/about-us/
 
-GROUP PACS BY PARTY 
 ```{r}
 
-democratic_PACS_2020 <-donation_df |>
-  group_by(recipient)|> 
-  filter(party !=  "Republican")|> 
+# Add AB PAC to biden_2020. 
+
+ biden_2020 <- donation_df |> 
+  group_by(owner) |> 
+  filter(team != "Commissioner") |>
   filter(election_year == 2020) |> 
-  arrange (recipient)
+  filter(
+    str_detect(recipient,"BIDEN") | 
+      str_detect(recipient,"UNITE THE COUNTRY") | 
+      str_detect(recipient,"AB PAC")) |>
+  summarise (total = sum(amount))
 
-democratic_PACS_2020
+# What is the new total? 
 
+total_biden_final = sum(biden_2020$total)
+
+total_biden_final
+
+# There is the $405,745 we were looking to match from the article. 
 ```
+
+## Group Memo: 
+
