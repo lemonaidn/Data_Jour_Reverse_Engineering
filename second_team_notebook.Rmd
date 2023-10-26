@@ -229,7 +229,34 @@ sum(trump_2020$contributions)
 Finally, we found this webpage from The Center for Public Integrity that lists a number of Trump-affiliated PACs: 
 https://publicintegrity.org/politics/donald-trump-army-super-pacs-maga-nonprofits/
 
-Now we were taking on a data analysis method we're not proud of: scanning 2020 donations by our 13 owners and seeing if they were in this list. Finally we noticed that America First Action Inc. received $200,000 in 2020 from Dan Devos, who was in our list of the 13 owners. This was the exact amount to make up the remaining gap between our total and 538's total, and according to the Center for Public Integrity this PAC supported Trump in 2020. 
+Now we were taking on a data analysis method we're not proud of: scanning non-Democratic 2020 donations by our 13 owners and seeing if they were in this list. 
+
+Bill Foley (Vegas Golden Knights), Bill Hornbuckle (Las Vegas Aces), Charles Johnson (San Francisco Giants), Dan Devos (Orlando Magic), Jack Roush (NASCAR), James Dolan (New York Knicks and Rangers), Kelly Loeffler (Atlanta Dream), Mike Brown (Cincinnati Bengals), Peter Karmanos (Carolina Hurricanes), Robert Plummer (Los Angeles Dodgers), Roger Penske (Team Penske) Tilman Fertitta (Houston Rockets) and Todd Ricketts
+```{r}
+trump_owner_breakout <- donation_df |> 
+  group_by(recipient)|> 
+  filter(party !=  "Democrat")|> 
+  filter(election_year == "2020") |> 
+  filter(owner == "Bill Foley" | 
+           owner == "Bill Hornbuckle" |
+           owner == "Charles Johnson" |
+           owner == "Dan DeVos" | 
+           owner == "Jack Roush" |
+           owner == "James Dolan" |
+           owner == "Kelly Loeffler" |
+           owner == "Mike Brown" |
+           owner == "Peter Karmanos" |
+           owner == "Robert Plummer" |
+           owner == "Roger Penske" |
+           owner == "Tilman Fertitta" | 
+           owner == "Todd Ricketts") |> 
+  arrange (recipient)
+
+trump_owner_breakout 
+
+```
+
+Finally we noticed that America First Action Inc. received $200,000 in 2020 from Dan Devos, who was in our list of the 13 owners. This was the exact amount to make up the remaining gap between our total and 538's total, and according to the Center for Public Integrity this PAC supported Trump in 2020. 
 
 Below is the code that enabled us to successfully replicate 538's finding at last. 
 
@@ -363,7 +390,6 @@ biden_owner_breakout <- donation_df |>
            owner == "Herbert Simon" |
            owner == "Ilana Kloss" |
            owner == "James Dinan" |
-           owner == "James Dinan" |
            owner == "Jeff Dickerson" | 
            owner == "Jim Pohlad" | 
            owner == "John Rogers" | 
@@ -373,13 +399,14 @@ biden_owner_breakout <- donation_df |>
            owner == "Michael Alter" | 
            owner == "Peter Guber" | 
            owner == "Tom Werner" | 
-           owner == "Zygi Wilf")
+           owner == "Zygi Wilf") |> 
+  arrange (recipient)
   
 biden_owner_breakout 
 
 ```
 
-After extensively Googling any PACs we did not recognize, it turns out that "AB PAC" supported Biden in 2020. https://www.americanbridgepac.org/about-us/
+A Google search yielded that "AB PAC" supported Biden in 2020. https://www.americanbridgepac.org/about-us/
 
 ```{r}
 
