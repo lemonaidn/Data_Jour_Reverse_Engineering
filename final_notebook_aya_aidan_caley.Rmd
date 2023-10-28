@@ -22,6 +22,13 @@ knitr::opts_chunk$set(echo = TRUE)
 - Convert the amount column from a character to a dbl, removing the dollar sign and the comma from each amount entry. We used mutate(parse_number()) to do so. 
 
 ```{r}
+
+# Turn off scientific notation. 
+
+options(scipen=999)
+
+# Load libraries. 
+
 library(tidyverse)
 library(readr)
 library(scales)
@@ -29,7 +36,7 @@ library(janitor)
 
 # Load the data from 538.
 
-donation_df = read_csv("sports-political-donations.csv")
+donation_df = read_csv("data/sports-political-donations.csv")
 
 # Clean column names to change case to lower and remove spaces. 
 
@@ -196,7 +203,7 @@ new_total_13
 
 # It's $1,546,423. How much money are we still missing? 
 
-still_missing = total_13 - new_total_13 
+still_missing <- total_13 - new_total_13 
 
 still_missing
 
@@ -311,6 +318,7 @@ missing_biden
 # We are still missing $177,200 in donations for Biden-supporting PACs. 
 
 ```
+
 We know now we were missing some PACs that didn't have "Biden" in the name. So again we looked back at the 538 article for the list of owners and found: 
 
 "By contrast, 20 owners have contributed directly to Biden or Biden’s super PACs, though at smaller totals, with overall contributions equaling $405,745. The Biden contributors include:
@@ -322,7 +330,7 @@ Comparing that list of owners to our owners in the biden_2020 dataframe, 2 thing
 1: Our biden_2020 dataframe had Adam Silver and 538 did not include him. 
 2: biden_2020 was missing John Rogers of the Chicago Sky. 
 
-Why isn't 538 including Adam Silver? Let's find his donations in the original donation_df dataframe. Aha! He does not have a team listed - he is a commissioner! That must be why 538 didn't count him in the list of 20 team owners who supported Biden. This made us scratch our heads at why the commissioners would be included in the dataframe just to be excluded from a stat like this. 
+Why isn't 538 including Adam Silver? Let's find his donations in the original donation_df dataframe. 
 
 ```{r}
 
@@ -335,11 +343,13 @@ donation_df |>
 
 ```
 
-Okay, how did we also miss John Rogers? He must not have contributed to a PAC with "Biden" in the name but that actually does support Biden as a candidate. Let's look up his donations for clues. 
+Aha! He does not have a team listed - he is a commissioner! That must be why 538 didn't count him in the list of 20 team owners who supported Biden. This made us scratch our heads at why the commissioners would be included in the dataframe just to be excluded from a stat like this. 
+
+Okay, now how did we also miss John Rogers? He must not have contributed to a PAC with "Biden" in the name but that actually does support Biden as a candidate. Let's look up his donations for clues. 
 
 ```{r}
 
-# Look atJohn Rogers contributions in 2020. 
+# Look at John Rogers contributions in 2020. 
 
 donation_df |> 
   filter(election_year == 2020) |> 
@@ -348,7 +358,7 @@ donation_df |>
 
 ```
 
-We started Googling these PACs to figure out which Rogers donation was actually supporting Biden. Again, this was time consuming and not at all efficient. We were still pining for a column that indicated whether a PAC was for congress or the presidential election. At long last, we found that "UNITE THE COUNTY" supported Biden in 2020. https://unitethecountry.com/
+We started Googling these PACs to figure out which Rogers donation was actually supporting Biden. Again, this was time consuming and not at all efficient. We were still wishing for a column that indicated whether a PAC was for congress or the presidential election. At long last, we found that "UNITE THE COUNTY" supported Biden in 2020. https://unitethecountry.com/
 
 ```{r}
 
